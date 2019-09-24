@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using Oculus;
 
 public class GunBehaviour : MonoBehaviour
@@ -14,6 +15,7 @@ public class GunBehaviour : MonoBehaviour
 	public float BulletSpeed = 50.0f;
 	LineRenderer AimLine;
     public GameObject LineOBJPos;
+    public Image RedDot;
 
 
 	bool IsVR = false;
@@ -43,6 +45,16 @@ public class GunBehaviour : MonoBehaviour
 		AimLine.SetPosition(0, new Vector3(LineOBJPos.transform.position.x, LineOBJPos.transform.position.y, LineOBJPos.transform.position.z));
 		AimLine.SetPosition(1, new Vector3(LineOBJPos.transform.position.x, LineOBJPos.transform.position.y, LineOBJPos.transform.position.z + 100));
 
+        if (!IsVR)
+        {
+            AimLine.SetPosition(0, new Vector3(0,0,0));
+            AimLine.SetPosition(1, new Vector3(0, 0, 0));
+            foreach (Renderer r in GetComponentsInChildren<Renderer>())
+                r.enabled = false;
+
+            BulletSpawnPoint.transform.position = new Vector3(transform.position.x, transform.position.y, transform.position.z);
+        }
+
 	}
 	private void Update()
 	{
@@ -58,22 +70,38 @@ public class GunBehaviour : MonoBehaviour
 				CurrentBullet.transform.up = transform.forward;
 
 			}
+            AimLine.SetPosition(0, new Vector3(LineOBJPos.transform.position.x, LineOBJPos.transform.position.y, LineOBJPos.transform.position.z));
+            AimLine.SetPosition(1, LineOBJPos.transform.forward * 100.0f);
 		}
 		else
 		{
-			if (Input.GetMouseButtonDown(0))
+            RaycastHit hit;
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+            if (Physics.Raycast(ray, out hit, 100))
+            {
+                Debug.DrawRay(transform.position, transform.TransformDirection(Vector3.forward) * hit.distance, Color.yellow);
+                transform.LookAt(hit.point);
+                RedDot.transform.position = Camera.main.WorldToScreenPoint(hit.point);
+            }
+            else
+            {
+                Debug.DrawRay(transform.position, transform.TransformDirection(Vector3.forward) * hit.distance, Color.yellow);
+            }
+                
+
+
+            if (Input.GetMouseButtonDown(0))
 			{
 				GameObject CurrentBullet;
 				CurrentBullet = GetBullet();
 				CurrentBullet.SetActive(true);
-				CurrentBullet.transform.position = BulletSpawnPoint.transform.position;
-				BulletRB[CurrentBulletIndex].velocity = transform.forward * BulletSpeed;
-				CurrentBullet.transform.up = transform.forward;
+				CurrentBullet.transform.position = LineOBJPos.transform.position;
+				BulletRB[CurrentBulletIndex].velocity = transform.TransformDirection(Vector3.forward) * BulletSpeed;
+				//CurrentBullet.transform.up = transform.forward;
 
 			}
 		}
-        AimLine.SetPosition(0, new Vector3(LineOBJPos.transform.position.x, LineOBJPos.transform.position.y, LineOBJPos.transform.position.z));
-        AimLine.SetPosition(1, LineOBJPos.transform.forward * 100.0f);
     }
 
 	public GameObject GetBullet()
